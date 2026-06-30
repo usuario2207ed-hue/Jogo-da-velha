@@ -1,6 +1,6 @@
 ### 🚀 Como usar
 1. Acesse o app neste link:  
-   👉 https://usuario2207ed-hue.github.io/Guardian/
+   👉 https://usuario2207ed-hue.github.io/Jogo-da-velha/
 
 2. No navegador do **celular (Chrome/Edge)**:  
    - Abra o menu (⋮)  

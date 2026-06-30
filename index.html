@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#000000" />
+  <title>Jogo da Velha</title>
+  <link rel="manifest" href="manifest.json" />
+  <style>
+    :root{
+      --bg:#000;
+      --panel:#fff;
+      --red:#e11d48;
+      --black:#111;
+      --gold:#ffd700;
+      --blue:#60a5fa;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:Arial,Helvetica,sans-serif;
+      background:var(--bg);
+      color:#fff;
+      min-height:100vh;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      overflow-x: hidden; /* Evita rolagens laterais fantasmas */
+    }
+    .wrap{
+      width: 100%;
+      max-width: 740px;
+      padding:12px;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap:14px;
+      flex:1;
+    }
+    h1{
+      margin:8px 0 0;
+      text-align:center;
+      font-size:clamp(1.8rem, 5vw, 3.5rem);
+      letter-spacing:1px;
+      animation:pulse 1.8s infinite;
+      color:#fff;
+      text-shadow:0 0 10px #fff,0 0 20px #ff3;
+    }
+    @keyframes pulse{
+      0%,100%{transform:scale(1);filter:brightness(1)}
+      50%{transform:scale(1.03);filter:brightness(1.25)}
+    }
+    .card{
+      width: 100%;
+      background:rgba(255,255,255,.97);
+      color:#000;
+      border-radius:22px;
+      padding:16px;
+      box-shadow:0 20px 60px rgba(0,0,0,.45);
+    }
+    .setup{
+      display:grid;
+      gap:12px;
+    }
+    .row{
+      display:grid;
+      gap:10px;
+      grid-template-columns: 1fr 1fr 1.2fr;
+    }
+    .row2{
+      display:grid;
+      gap:10px;
+      grid-template-columns:1.2fr .8fr;
+    }
+    .field,select,button,input{
+      width:100%;
+      padding:14px;
+      border-radius:14px;
+      border:2px solid #111;
+      font-size:1rem;
+    }
+    button{
+      cursor:pointer;
+      background:#111;
+      color:#fff;
+      font-weight:700;
+    }
+    .btn-red{background:#d90429}
+    .btn-blue{background:#2563eb}
+    .btn-gold{background:#b45309}
+
+    .game{
+      display:none;
+      gap:14px;
+    }
+    .topbar{
+      display:flex;
+      gap:10px;
+      justify-content:space-between;
+      align-items:center;
+      width: 100%;
+    }
+    .status{
+      font-weight:700;
+      font-size:0.95rem;
+      word-break: break-word;
+    }
+    .board{
+      display:grid;
+      grid-template-columns:repeat(3, 1fr);
+      gap:10px;
+      width: 100%;
+      max-width: 420px; /* Evita que o tabuleiro estoure a largura em celulares menores */
+      margin:0 auto;
+    }
+    .cell{
+      aspect-ratio:1;
+      background:#fff;
+      border:3px solid #111;
+      border-radius:18px;
+      font-size:clamp(2rem, 8vw, 4rem);
+      font-weight:900;
+      display:grid;
+      place-items:center;
+      user-select:none;
+      padding: 0;
+    }
+    .cell.x{color:var(--red)}
+    .cell.o{color:#000}
+    .scoreboard{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:8px;
+      width: 100%;
+    }
+    .stat{
+      background:#111;
+      color:#fff;
+      padding:10px 4px;
+      border-radius:14px;
+      text-align:center;
+      font-size: 0.85rem;
+      font-weight: bold;
+      word-break: break-word;
+    }
+    .winner{
+      display:none;
+      text-align:center;
+      padding:14px;
+      border-radius:16px;
+      background:linear-gradient(90deg,#111,#2b2b2b);
+      color:#fff;
+      font-size:1.1rem;
+      font-weight:800;
+      width: 100%;
+    }
+    .stars{
+      color:var(--gold);
+      font-size:1.1rem;
+      letter-spacing:3px;
+    }
+    .confetti{
+      font-size:1.2rem;
+      letter-spacing:2px;
+    }
+    .footer{
+      padding:16px 8px;
+      text-align:center;
+      color:#ddd;
+      font-size:.9rem;
+    }
+    .leaders{
+      margin-top:6px;
+      background:#f7f7f7;
+      border-radius:16px;
+      padding:12px;
+    }
+    .leaders h3{
+      margin:0 0 8px;
+    }
+    .leaders ol{
+      margin:0;
+      padding-left:22px;
+    }
+    .hidden{display:none}
+
+    /* Ajustes específicos para telas mobile (Smartphones) */
+    @media (max-width:600px){
+      .row, .row2 {
+        grid-template-columns: 1fr;
+      }
+      .topbar {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+      }
+      .scoreboard {
+        grid-template-columns: 1fr;
+        gap: 6px;
+      }
+      .stat {
+        padding: 12px;
+        font-size: 1rem;
+      }
+      .card{
+        padding:12px;
+        border-radius: 16px;
+      }
+      .cell {
+        border-radius: 12px;
+        border-width: 2px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Jogo da Velha</h1>
+
+    <div class="card setup" id="setupCard">
+      <div class="row">
+        <input id="p1" placeholder="Player 1" value="Player 1">
+        <input id="p2" placeholder="Player 2" value="Player 2">
+        <select id="mode">
+          <option value="human">2 Jogadores</option>
+          <option value="ai">Contra a IA</option>
+        </select>
+      </div>
+      <div class="row2">
+        <button class="btn-blue" id="startBtn">Iniciar jogo</button>
+        <button class="btn-gold" id="resetStorageBtn">Limpar ranking</button>
+      </div>
+      <div class="leaders">
+        <h3>Top 5 pontuações</h3>
+        <ol id="leaderList"></ol>
+      </div>
+    </div>
+
+    <div class="card game" id="gameCard">
+      <div class="topbar">
+        <div class="status" id="turnInfo"></div>
+        <div class="status" id="scoreInfo"></div>
+      </div>
+
+      <div class="winner" id="winnerBox">
+        <div class="stars">★ ★ ★ ★ ★</div>
+        <div id="winnerText"></div>
+        <div class="confetti">🎆 🎉 🎇</div>
+        <div class="stars">★ ★ ★ ★ ★</div>
+      </div>
+
+      <div class="board" id="board"></div>
+
+      <div class="scoreboard">
+        <div class="stat" id="s1">Player 1: 0</div>
+        <div class="stat" id="s2">Player 2: 0</div>
+        <div class="stat" id="draws">Empates: 0</div>
+      </div>
+
+      <div class="row2">
+        <button id="newRoundBtn">Nova rodada</button>
+        <button class="btn-red" id="backBtn">Voltar</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">2026 Edcelltech</div>
+
+  <script>
+    const setupCard = document.getElementById('setupCard');
+    const gameCard = document.getElementById('gameCard');
+    const boardEl = document.getElementById('board');
+    const p1El = document.getElementById('p1');
+    const p2El = document.getElementById('p2');
+    const modeEl = document.getElementById('mode');
+    const turnInfo = document.getElementById('turnInfo');
+    const scoreInfo = document.getElementById('scoreInfo');
+    const winnerBox = document.getElementById('winnerBox');
+    const winnerText = document.getElementById('winnerText');
+    const s1 = document.getElementById('s1');
+    const s2 = document.getElementById('s2');
+    const draws = document.getElementById('draws');
+    const leaderList = document.getElementById('leaderList');
+
+    let board, turn, gameOver, player1, player2, mode;
+    let scores = { p1: 0, p2: 0, draw: 0 };
+    const L = 'edcelltech_ttt_scores';
+
+    function loadLeaders() {
+      const arr = JSON.parse(localStorage.getItem(L) || '[]');
+      leaderList.innerHTML = arr.slice(0, 5).map(x => `<li>${x.name} — ${x.score}</li>`).join('') || '<li>Sem partidas ainda</li>';
+    }
+
+    function saveLeader(name, score) {
+      const arr = JSON.parse(localStorage.getItem(L) || '[]');
+      arr.push({ name, score, date: Date.now() });
+      arr.sort((a, b) => b.score - a.score);
+      localStorage.setItem(L, JSON.stringify(arr.slice(0, 5)));
+      loadLeaders();
+    }
+
+    function check(b) {
+      const w = [
+        [0,1,2],[3,4,5],[6,7,8],
+        [0,3,6],[1,4,7],[2,5,8],
+        [0,4,8],[2,4,6]
+      ];
+      for (const [a,c,d] of w) {
+        if (b[a] && b[a] === b[c] && b[a] === b[d]) return b[a];
+      }
+      return b.every(Boolean) ? 'D' : null;
+    }
+
+    function render() {
+      boardEl.innerHTML = '';
+      board.forEach((v, i) => {
+        const b = document.createElement('button');
+        b.className = 'cell ' + (v === 'X' ? 'x' : v === 'O' ? 'o' : '');
+        b.textContent = v || '';
+        b.onclick = () => move(i);
+        boardEl.appendChild(b);
+      });
+
+      turnInfo.textContent = gameOver
+        ? 'Jogo finalizado'
+        : `Vez de ${turn === 'X' ? player1 : player2} (${turn})`;
+
+      scoreInfo.textContent = mode === 'ai'
+        ? 'Modo: máquina invicta'
+        : 'Modo: 2 jogadores';
+
+      s1.textContent = `${player1}: ${scores.p1}`;
+      s2.textContent = `${player2}: ${scores.p2}`;
+      draws.textContent = `Empates: ${scores.draw}`;
+    }
+
+    function start() {
+      player1 = p1El.value.trim() || 'Player 1';
+      mode = modeEl.value;
+      player2 = mode === 'ai' ? 'IA' : (p2El.value.trim() || 'Player 2');
+      board = Array(9).fill('');
+      turn = 'X';
+      gameOver = false;
+      setupCard.style.display = 'none';
+      gameCard.style.display = 'grid';
+      winnerBox.style.display = 'none';
+      render();
+    }
+
+    function end(res) {
+      gameOver = true;
+      winnerBox.style.display = 'block';
+
+      if (res === 'D') {
+        scores.draw++;
+        winnerText.textContent = 'Deu empate!';
+      } else {
+        const name = res === 'X' ? player1 : player2;
+        if (mode === 'ai' && res === 'O') saveLeader('IA', 1);
+        else saveLeader(name, 1);
+
+        if (res === 'X') scores.p1++;
+        else scores.p2++;
+
+        winnerText.textContent = `Parabéns, ${name} venceu!`;
+      }
+      render();
+    }
+
+    function move(i) {
+      if (gameOver || board[i]) return;
+      if (mode === 'ai' && turn === 'O') return;
+
+      board[i] = turn;
+      const r = check(board);
+      if (r) return end(r);
+
+      turn = turn === 'X' ? 'O' : 'X';
+      render();
+
+      if (mode === 'ai' && !gameOver && turn === 'O') {
+        setTimeout(aiMove, 180);
+      }
+    }
+
+    function aiMove() {
+      if (gameOver) return;
+      const i = bestMove(board);
+      board[i] = 'O';
+
+      const r = check(board);
+      if (r) return end(r);
+
+      turn = 'X';
+      render();
+    }
+
+    function bestMove(b) {
+      let best = -Infinity, moveIdx = 0;
+      for (let i = 0; i < 9; i++) {
+        if (!b[i]) {
+          b[i] = 'O';
+          const score = minimax(b, 0, false);
+          b[i] = '';
+          if (score > best) {
+            best = score;
+            moveIdx = i;
+          }
+        }
+      }
+      return moveIdx;
+    }
+
+    function minimax(b, depth, isMax) {
+      const res = check(b);
+      if (res === 'O') return 10 - depth;
+      if (res === 'X') return depth - 10;
+      if (res === 'D') return 0;
+
+      if (isMax) {
+        let best = -Infinity;
+        for (let i = 0; i < 9; i++) {
+          if (!b[i]) {
+            b[i] = 'O';
+            best = Math.max(best, minimax(b, depth + 1, false));
+            b[i] = '';
+          }
+        }
+        return best;
+      } else {
+        let best = Infinity;
+        for (let i = 0; i < 9; i++) {
+          if (!b[i]) {
+            b[i] = 'X';
+            best = Math.min(best, minimax(b, depth + 1, true));
+            b[i] = '';
+          }
+        }
+        return best;
+      }
+    }
+
+    document.getElementById('startBtn').onclick = start;
+    document.getElementById('newRoundBtn').onclick = () => {
+      board = Array(9).fill('');
+      turn = 'X';
+      gameOver = false;
+      winnerBox.style.display = 'none';
+      render();
+    };
+    document.getElementById('backBtn').onclick = () => {
+      gameCard.style.display = 'none';
+      setupCard.style.display = 'grid';
+    };
+    document.getElementById('resetStorageBtn').onclick = () => {
+      localStorage.removeItem(L);
+      loadLeaders();
+    };
+
+    loadLeaders();
+
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch(() => {});
+      });
+    }
+  </script>
+</body>
+</html>
